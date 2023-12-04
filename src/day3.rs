@@ -1,7 +1,6 @@
 use regex::Regex;
 use std::cmp::min;
-use std::collections::hash_map::Entry;
-use std::collections::HashMap;
+use std::collections::{hash_map::Entry, HashMap};
 
 pub fn part1(input: &str) -> u64 {
     fn contains_symbol(s: &str) -> bool {
@@ -20,7 +19,7 @@ pub fn part1(input: &str) -> u64 {
             let symbol_below = i < lines.len() - 1 && contains_symbol(&lines[i + 1][start..end]);
             let symbol_here = contains_symbol(&line[start..end]);
             if symbol_above || symbol_below || symbol_here {
-                sum += m.as_str().parse::<u64>().unwrap()
+                sum += m.as_str().parse::<u64>().unwrap();
             }
         }
     }
