@@ -43,7 +43,7 @@ pub fn part2(input: &str) -> u64 {
                         .chars()
                         .enumerate()
                         .filter(|(_, c)| *c == '*')
-                        .map(|(j, _)| ($i - 1, start + j))
+                        .map(|(j, _)| ($i, start + j))
                 };
             }
 
