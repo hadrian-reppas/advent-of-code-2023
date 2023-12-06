@@ -1,4 +1,4 @@
-use std::cmp::min;
+use std::ops::Range;
 use std::str::FromStr;
 
 struct Segment {
@@ -16,6 +16,54 @@ impl Segment {
             length: ints.next().unwrap(),
         }
     }
+
+    fn map(&self, x: u64) -> Option<u64> {
+        if x >= self.source && x < self.source + self.length {
+            Some(x - self.source + self.destination)
+        } else {
+            None
+        }
+    }
+
+    fn map_inclusive(&self, x: u64) -> Option<u64> {
+        if x >= self.source && x <= self.source + self.length {
+            Some(x - self.source + self.destination)
+        } else {
+            None
+        }
+    }
+
+    fn map_range(&self, range: Range<u64>) -> (Vec<Range<u64>>, Option<Range<u64>>) {
+        let (source_start, source_end) = (self.source, self.source + self.length);
+        let (dest_start, dest_end) = (self.destination, self.destination + self.length);
+        let (start, end) = (range.start, range.end);
+
+        if end <= source_start {
+            (vec![range], None)
+        } else if start < source_start && end <= source_end {
+            (
+                vec![start..source_start],
+                Some(dest_start..self.map_inclusive(end).unwrap()),
+            )
+        } else if start < source_start && end > source_end {
+            (
+                vec![start..source_start, source_end..end],
+                Some(dest_start..dest_end),
+            )
+        } else if start >= source_start && end <= source_end {
+            (
+                Vec::new(),
+                Some(self.map(start).unwrap()..self.map_inclusive(end).unwrap()),
+            )
+        } else if start >= source_start && start < source_end && end > source_end {
+            (
+                vec![source_end..end],
+                Some(self.map(start).unwrap()..dest_end),
+            )
+        } else {
+            (vec![range], None)
+        }
+    }
 }
 
 struct Map(Vec<Segment>);
@@ -27,11 +75,45 @@ impl Map {
 
     fn map(&self, x: u64) -> u64 {
         for segment in &self.0 {
-            if x >= segment.source && x < segment.source + segment.length {
-                return x - segment.source + segment.destination;
+            if let Some(mapped) = segment.map(x) {
+                return mapped;
             }
         }
         x
+    }
+
+    fn map_set(&self, set: &RangeSet) -> RangeSet {
+        RangeSet(
+            set.0
+                .iter()
+                .cloned()
+                .flat_map(|r| self.map_range(r))
+                .collect(),
+        )
+    }
+
+    fn map_range(&self, range: Range<u64>) -> Vec<Range<u64>> {
+        let (mut todo, mut out) = (vec![range], Vec::new());
+        for segment in &self.0 {
+            todo = todo
+                .into_iter()
+                .flat_map(|range| {
+                    let (todo, mapped) = segment.map_range(range);
+                    out.extend(mapped);
+                    todo
+                })
+                .collect();
+        }
+        out.extend(todo);
+        out
+    }
+}
+
+struct RangeSet(Vec<Range<u64>>);
+
+impl RangeSet {
+    fn min(&self) -> u64 {
+        self.0.iter().map(|r| r.start).min().unwrap()
     }
 }
 
@@ -61,17 +143,16 @@ pub fn part2(input: &str) -> u64 {
         .skip(1)
         .flat_map(u64::from_str)
         .collect();
-    let maps: Vec<_> = sections.map(Map::parse).collect();
-
-    let mut min_location = u64::MAX;
+    let mut sets = Vec::new();
     for pair in seeds.chunks(2) {
-        for mut seed in pair[0]..(pair[0] + pair[1]) {
-            for map in &maps {
-                seed = map.map(seed);
-            }
-            min_location = min(seed, min_location);
+        sets.push(RangeSet(vec![pair[0]..pair[0] + pair[1]]));
+    }
+
+    for map in sections.map(Map::parse) {
+        for set in &mut sets {
+            *set = map.map_set(set);
         }
     }
 
-    min_location
+    sets.iter().map(RangeSet::min).min().unwrap()
 }
