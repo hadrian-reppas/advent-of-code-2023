@@ -1,42 +1,26 @@
 use std::any::{Any, TypeId};
 use std::fmt::Debug;
 
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Debug)]
-enum CardPart1 {
-    Two,
-    Three,
-    Four,
-    Five,
-    Six,
-    Seven,
-    Eight,
-    Nine,
-    Ten,
-    Jack,
-    Queen,
-    King,
-    Ace,
-}
-
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Debug)]
-enum CardPart2 {
-    Joker,
-    Two,
-    Three,
-    Four,
-    Five,
-    Six,
-    Seven,
-    Eight,
-    Nine,
-    Ten,
-    Queen,
-    King,
-    Ace,
-}
-
 macro_rules! card_impl {
-    ($card:ident, $j:ident) => {
+    ($card:ident, $($jack:ident)?, $($joker:ident)?) => {
+        #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Debug)]
+        enum $card {
+            $($joker,)?
+            Two,
+            Three,
+            Four,
+            Five,
+            Six,
+            Seven,
+            Eight,
+            Nine,
+            Ten,
+            $($jack,)?
+            Queen,
+            King,
+            Ace,
+        }
+
         impl From<char> for $card {
             fn from(c: char) -> Self {
                 match c {
@@ -49,7 +33,7 @@ macro_rules! card_impl {
                     '8' => $card::Eight,
                     '9' => $card::Nine,
                     'T' => $card::Ten,
-                    'J' => $card::$j,
+                    'J' => $card::$($jack)? $($joker)?,
                     'Q' => $card::Queen,
                     'K' => $card::King,
                     'A' => $card::Ace,
@@ -60,14 +44,14 @@ macro_rules! card_impl {
 
         impl From<$card> for usize {
             fn from(card: $card) -> Self {
-                card as _
+                card as usize
             }
         }
     };
 }
 
-card_impl!(CardPart1, Jack);
-card_impl!(CardPart2, Joker);
+card_impl!(Part1Card, Jack,);
+card_impl!(Part2Card,, Joker);
 
 #[derive(PartialEq, Eq, PartialOrd, Ord)]
 enum HandType {
@@ -90,11 +74,11 @@ impl HandType {
             counts[card.into()] += 1;
         }
 
-        if TypeId::of::<C>() == TypeId::of::<CardPart2>() {
-            counts[1..].sort();
+        if TypeId::of::<C>() == TypeId::of::<Part2Card>() {
+            counts[1..].sort_unstable();
             counts[12] += counts[0];
         } else {
-            counts.sort();
+            counts.sort_unstable();
         }
 
         match counts {
@@ -138,12 +122,7 @@ where
     C: Ord + Into<usize> + Copy + Any,
 {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        let (self_type, other_type) = (HandType::of(self.cards), HandType::of(other.cards));
-        if self_type == other_type {
-            Some(self.cards.cmp(&other.cards))
-        } else {
-            Some(self_type.cmp(&other_type))
-        }
+        Some(self.cmp(other))
     }
 }
 
@@ -152,12 +131,17 @@ where
     C: Ord + Into<usize> + Copy + Any,
 {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.partial_cmp(other).unwrap()
+        let (self_type, other_type) = (HandType::of(self.cards), HandType::of(other.cards));
+        if self_type == other_type {
+            self.cards.cmp(&other.cards)
+        } else {
+            self_type.cmp(&other_type)
+        }
     }
 }
 
 pub fn part1(input: &str) -> u64 {
-    let mut hands: Vec<Hand<CardPart1>> = input.lines().map(Hand::parse).collect();
+    let mut hands: Vec<Hand<Part1Card>> = input.lines().map(Hand::parse).collect();
     hands.sort();
     hands
         .into_iter()
@@ -167,7 +151,7 @@ pub fn part1(input: &str) -> u64 {
 }
 
 pub fn part2(input: &str) -> u64 {
-    let mut hands: Vec<Hand<CardPart2>> = input.lines().map(Hand::parse).collect();
+    let mut hands: Vec<Hand<Part2Card>> = input.lines().map(Hand::parse).collect();
     hands.sort();
     hands
         .into_iter()
