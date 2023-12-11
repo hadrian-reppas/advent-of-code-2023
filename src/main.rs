@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 
 mod day1;
+mod day10;
 mod day2;
 mod day3;
 mod day4;
@@ -11,7 +12,7 @@ mod day8;
 mod day9;
 
 fn main() {
-    let input = std::fs::read_to_string("input/day9.txt").unwrap();
-    println!("{}", day9::part1(&input));
-    println!("{}", day9::part2(&input));
+    let input = std::fs::read_to_string("input/day10.txt").unwrap();
+    println!("{}", day10::part1(&input));
+    println!("{}", day10::part2(&input));
 }
