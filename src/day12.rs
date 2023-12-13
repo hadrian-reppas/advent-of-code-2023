@@ -1,4 +1,7 @@
+use std::iter::repeat;
 use std::str::FromStr;
+
+use rayon::prelude::*;
 
 #[derive(Clone, Copy, Debug)]
 enum Condition {
@@ -37,8 +40,14 @@ fn parse(line: &str) -> (Vec<Condition>, Vec<usize>) {
     (springs, runs)
 }
 
+fn copy_five_times((springs, runs): (Vec<Condition>, Vec<usize>)) -> (Vec<Condition>, Vec<usize>) {
+    (
+        repeat(springs).take(5).flatten().collect(),
+        repeat(runs).take(5).flatten().collect(),
+    )
+}
+
 fn count_arrangements(springs: &mut [Condition], runs: &[usize]) -> u64 {
-    // dbg!(&springs, runs);
     match springs.get(0) {
         None => runs.is_empty().into(),
         Some(Condition::Operational) => count_arrangements(&mut springs[1..], runs),
@@ -85,6 +94,21 @@ pub fn part1(input: &str) -> u64 {
         .sum()
 }
 
+fn inc() -> u64 {
+    use std::sync::atomic::{AtomicU64, Ordering};
+    static COUNT: AtomicU64 = AtomicU64::new(0);
+    COUNT.fetch_add(1, Ordering::SeqCst)
+}
+
 pub fn part2(input: &str) -> u64 {
-    todo!()
+    let lines: Vec<_> = input.lines().collect();
+    lines
+        .into_par_iter()
+        .map(parse)
+        .map(copy_five_times)
+        .map(|(mut springs, runs)| {
+            println!("{}/1000", inc());
+            count_arrangements(&mut springs, &runs)
+        })
+        .sum()
 }
