@@ -1,4 +1,3 @@
-use std::iter::repeat;
 use std::str::FromStr;
 
 #[derive(Clone, Copy, Debug)]
@@ -18,93 +17,59 @@ impl Condition {
         }
     }
 
-    fn maybe_damaged(self) -> bool {
+    fn maybe_damaged(&self) -> bool {
         matches!(self, Condition::Damaged | Condition::Unknown)
     }
 
-    fn maybe_operational(self) -> bool {
+    fn maybe_operational(&self) -> bool {
         matches!(self, Condition::Operational | Condition::Unknown)
     }
 }
 
-fn parse(line: &str) -> (Vec<Condition>, Vec<usize>) {
+fn parse(line: &str, copies: usize) -> (Vec<Condition>, Vec<usize>) {
     let (springs, runs) = line.split_once(' ').unwrap();
-    let springs = springs.chars().map(Condition::parse).collect();
-    let runs = runs
-        .split(',')
-        .map(usize::from_str)
-        .map(Result::unwrap)
-        .collect();
-    (springs, runs)
+    let springs = vec![springs; copies].join("?");
+    let runs = vec![runs; copies].join(",");
+    (
+        springs.chars().map(Condition::parse).collect(),
+        runs.split(',')
+            .map(usize::from_str)
+            .map(Result::unwrap)
+            .collect(),
+    )
 }
 
-fn parse_five_copies(line: &str) -> (Vec<Condition>, Vec<usize>) {
-    let (springs, runs) = line.split_once(' ').unwrap();
-    let springs = vec![springs; 5].join("?");
-    let runs = repeat(runs.split(',').map(usize::from_str).map(Result::unwrap))
-        .take(5)
-        .flatten()
-        .collect();
-    (springs.chars().map(Condition::parse).collect(), runs)
-}
-
-fn count_arrangements(springs: &[Condition], runs: &[usize], depth: usize) -> u64 {
-    // println!("{}{springs:?} {runs:?}", "   ".repeat(depth));
-
+fn count_arrangements(springs: &[Condition], runs: &[usize]) -> u64 {
     if runs.is_empty() {
-        return springs
-            .iter()
-            .copied()
-            .all(Condition::maybe_operational)
-            .into();
+        return springs.iter().all(Condition::maybe_operational).into();
     }
 
     let (left_runs, right_runs) = runs.split_at(runs.len() / 2);
     let (&run, right_runs) = right_runs.split_first().unwrap();
 
     if run == springs.len() {
-        return springs.iter().copied().all(Condition::maybe_damaged).into();
+        return springs.iter().all(Condition::maybe_damaged).into();
     }
 
     let mut left_margin = left_runs.iter().sum::<usize>() + left_runs.len();
     let mut right_margin = right_runs.iter().sum::<usize>() + right_runs.len();
 
-    // 01234567890123456789
-    // ????.?#????????????? 3,3,1,6
-    // ---|       |-|------
-    //    .---.
-    //     $---$
-    //      $---$
-    //       .---.
-    //        $---$
-
-    // 01234567890123456789
-    // ????.?#????????????? 3,3 -> [] 3 [3]
-    //$---$
-
-    // 01234567890123456789
-    // ????.?#????????????? 3 -> [] 3 []
-    //                 $---$
-
     let mut count = 0;
 
     if left_margin == 0 {
         left_margin = 1;
-        if springs[..run].iter().copied().all(Condition::maybe_damaged)
-            && springs[run].maybe_operational()
-        {
-            count += count_arrangements(&springs[run + 1..], right_runs, depth + 1);
+        if springs[..run].iter().all(Condition::maybe_damaged) && springs[run].maybe_operational() {
+            count += count_arrangements(&springs[run + 1..], right_runs);
         }
     }
     if right_margin == 0 {
         right_margin = 1;
         if springs[springs.len() - run..]
             .iter()
-            .copied()
             .all(Condition::maybe_damaged)
             && springs[springs.len() - run - 1].maybe_operational()
         {
-            count += count_arrangements(&springs[..springs.len() - run - 1], left_runs, depth + 1);
+            count += count_arrangements(&springs[..springs.len() - run - 1], left_runs);
         }
     }
 
@@ -113,11 +78,10 @@ fn count_arrangements(springs: &[Condition], runs: &[usize], depth: usize) -> u6
             && springs[start + run].maybe_operational()
             && springs[start..start + run]
                 .iter()
-                .copied()
                 .all(Condition::maybe_damaged)
         {
-            count += count_arrangements(&springs[..start - 1], left_runs, depth + 1)
-                * count_arrangements(&springs[start + run + 1..], right_runs, depth + 1);
+            count += count_arrangements(&springs[..start - 1], left_runs)
+                * count_arrangements(&springs[start + run + 1..], right_runs);
         }
     }
 
@@ -127,15 +91,15 @@ fn count_arrangements(springs: &[Condition], runs: &[usize], depth: usize) -> u6
 pub fn part1(input: &str) -> u64 {
     input
         .lines()
-        .map(parse)
-        .map(|(springs, runs)| count_arrangements(&springs, &runs, 0))
+        .map(|line| parse(line, 1))
+        .map(|(springs, runs)| count_arrangements(&springs, &runs))
         .sum()
 }
 
 pub fn part2(input: &str) -> u64 {
     input
         .lines()
-        .map(parse_five_copies)
-        .map(|(springs, runs)| count_arrangements(&springs, &runs, 0))
+        .map(|line| parse(line, 5))
+        .map(|(springs, runs)| count_arrangements(&springs, &runs))
         .sum()
 }
