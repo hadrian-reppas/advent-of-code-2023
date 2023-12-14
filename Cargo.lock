@@ -6,6 +6,7 @@ version = 3
 name = "advent-of-code-2023"
 version = "0.1.0"
 dependencies = [
+ "bimap",
  "regex",
 ]
 
@@ -17,6 +18,12 @@ checksum = "b2969dcb958b36655471fc61f7e416fa76033bdd4bfed0678d8fee1e2d07a1f0"
 dependencies = [
  "memchr",
 ]
+
+[[package]]
+name = "bimap"
+version = "0.6.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "230c5f1ca6a325a32553f8640d31ac9b49f2411e901e427570154868b46da4f7"
 
 [[package]]
 name = "memchr"
