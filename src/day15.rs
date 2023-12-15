@@ -1,12 +1,8 @@
-use std::collections::{hash_map::Entry, HashMap};
-
-#[derive(Debug)]
 enum Operation {
     Remove,
     Insert(u64),
 }
 
-#[derive(Debug)]
 struct Step<'a> {
     label: &'a str,
     operation: Operation,
@@ -18,43 +14,44 @@ impl<'a> Step<'a> {
             let (label, focal_length) = s.split_once('=').unwrap();
             (label, Operation::Insert(focal_length.parse().unwrap()))
         } else {
-            let (label, _) = s.split_once('-').unwrap();
-            (label, Operation::Remove)
+            (&s[..s.len() - 1], Operation::Remove)
         };
         Step { label, operation }
     }
 }
 
-#[derive(Default, Clone)]
-struct LenseBox<'a> {
-    focal_lengths: HashMap<&'a str, u64>,
-    labels: Vec<&'a str>,
+#[derive(Clone)]
+struct Pair<'a> {
+    label: &'a str,
+    focal_length: u64,
 }
+
+#[derive(Clone)]
+struct LenseBox<'a>(Vec<Pair<'a>>);
 
 impl<'a> LenseBox<'a> {
     fn insert(&mut self, label: &'a str, focal_length: u64) {
-        match self.focal_lengths.entry(label) {
-            Entry::Vacant(v) => {
-                v.insert(focal_length);
-                self.labels.push(label);
-            }
-            Entry::Occupied(mut o) => {
-                o.insert(focal_length);
-            }
+        if let Some(index) = self.0.iter().position(|p| p.label == label) {
+            self.0[index].focal_length = focal_length;
+        } else {
+            self.0.push(Pair {
+                label,
+                focal_length,
+            });
         }
     }
 
     fn remove(&mut self, label: &str) {
-        if self.focal_lengths.remove(label).is_some() {
-            self.labels.retain(|l| l != &label);
+        if let Some(index) = self.0.iter().position(|p| p.label == label) {
+            self.0.remove(index);
         }
     }
 
     fn focusing_power(&self, index: u64) -> u64 {
-        self.labels
+        self.0
             .iter()
             .zip(1..)
-            .map(|(label, slot)| index * slot * self.focal_lengths[label])
+            .map(|(pair, slot)| index * slot * pair.focal_length)
             .sum()
     }
 }
@@ -72,7 +69,7 @@ pub fn part1(input: &str) -> u64 {
 }
 
 pub fn part2(input: &str) -> u64 {
-    let mut boxes = vec![LenseBox::default(); 256];
+    let mut boxes = vec![LenseBox(Vec::new()); 256];
 
     for Step { label, operation } in input.split(',').map(Step::parse) {
         let index = hash(label) as usize;
