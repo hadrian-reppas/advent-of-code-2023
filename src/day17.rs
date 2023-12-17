@@ -16,78 +16,84 @@ struct Position {
     run: u8,
 }
 
-macro_rules! neighbor {
-    ($self:expr, $border:expr, $dir:ident, $opposite:ident, $new_row:expr, $new_col:expr, $min_run:expr, $max_run:expr) => {
-        if $border || $self.dir == Direction::$opposite {
-            None
-        } else if $self.dir == Direction::$dir {
-            ($self.run < $max_run).then_some(Position::new(
-                $new_row,
-                $new_col,
-                Direction::$dir,
-                $self.run + 1,
-            ))
-        } else {
-            ($self.run >= $min_run).then_some(Position::new($new_row, $new_col, Direction::$dir, 1))
-        }
-    };
-}
-
 impl Position {
     fn new(row: usize, col: usize, dir: Direction, run: u8) -> Self {
         Position { row, col, dir, run }
     }
 
     fn up(self, min_run: u8, max_run: u8) -> Option<Self> {
-        neighbor!(
-            self,
-            self.row == 0,
-            Up,
-            Down,
-            self.row - 1,
-            self.col,
-            min_run,
-            max_run
-        )
+        if self.row == 0 || self.dir == Direction::Down {
+            None
+        } else if self.dir == Direction::Up {
+            (self.run < max_run).then_some(Position::new(
+                self.row - 1,
+                self.col,
+                Direction::Up,
+                self.run + 1,
+            ))
+        } else {
+            (self.run >= min_run).then_some(Position::new(self.row - 1, self.col, Direction::Up, 1))
+        }
     }
 
     fn down(self, rows: usize, min_run: u8, max_run: u8) -> Option<Self> {
-        neighbor!(
-            self,
-            self.row == rows - 1,
-            Down,
-            Up,
-            self.row + 1,
-            self.col,
-            min_run,
-            max_run
-        )
+        if self.row == rows - 1 || self.dir == Direction::Up {
+            None
+        } else if self.dir == Direction::Down {
+            (self.run < max_run).then_some(Position::new(
+                self.row + 1,
+                self.col,
+                Direction::Down,
+                self.run + 1,
+            ))
+        } else {
+            (self.run >= min_run).then_some(Position::new(
+                self.row + 1,
+                self.col,
+                Direction::Down,
+                1,
+            ))
+        }
     }
 
     fn left(self, min_run: u8, max_run: u8) -> Option<Self> {
-        neighbor!(
-            self,
-            self.col == 0,
-            Left,
-            Right,
-            self.row,
-            self.col - 1,
-            min_run,
-            max_run
-        )
+        if self.col == 0 || self.dir == Direction::Right {
+            None
+        } else if self.dir == Direction::Left {
+            (self.run < max_run).then_some(Position::new(
+                self.row,
+                self.col - 1,
+                Direction::Left,
+                self.run + 1,
+            ))
+        } else {
+            (self.run >= min_run).then_some(Position::new(
+                self.row,
+                self.col - 1,
+                Direction::Left,
+                1,
+            ))
+        }
     }
 
     fn right(self, cols: usize, min_run: u8, max_run: u8) -> Option<Self> {
-        neighbor!(
-            self,
-            self.col == cols - 1,
-            Right,
-            Left,
-            self.row,
-            self.col + 1,
-            min_run,
-            max_run
-        )
+        if self.col == cols - 1 || self.dir == Direction::Left {
+            None
+        } else if self.dir == Direction::Right {
+            (self.run < max_run).then_some(Position::new(
+                self.row,
+                self.col + 1,
+                Direction::Right,
+                self.run + 1,
+            ))
+        } else {
+            (self.run >= min_run).then_some(Position::new(
+                self.row,
+                self.col + 1,
+                Direction::Right,
+                1,
+            ))
+        }
     }
 
     fn neighbors(
@@ -151,7 +157,9 @@ fn find_min_heat_loss(input: &str, min_run: u8, max_run: u8) -> u64 {
         position,
     }) = queue.pop()
     {
-        if done.contains(&position) {
+        if position.at_end(rows, cols, min_run) {
+            return heat_loss;
+        } else if done.contains(&position) {
             continue;
         }
         done.insert(position);
@@ -172,11 +180,7 @@ fn find_min_heat_loss(input: &str, min_run: u8, max_run: u8) -> u64 {
         }
     }
 
-    min_heat_loss
-        .iter()
-        .filter_map(|(pos, heat)| pos.at_end(rows, cols, min_run).then_some(*heat))
-        .min()
-        .unwrap()
+    unreachable!()
 }
 
 pub fn part1(input: &str) -> u64 {
