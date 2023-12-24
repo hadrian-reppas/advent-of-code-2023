@@ -1,18 +1,28 @@
 use std::collections::{HashMap, VecDeque};
 use std::iter::repeat_with;
 
+use crate::shared::lcm;
+
 #[derive(Clone, Debug)]
 struct Setup<'a> {
     broadcaster: Vec<&'a str>,
     flip_flops: HashMap<&'a str, FlipFlop<'a>>,
     conjunctions: HashMap<&'a str, Conjunction<'a>>,
+    special: HashMap<&'a str, Option<u64>>,
+    presses: u64,
 }
 
 impl<'a> Setup<'a> {
     fn parse(input: &'a str) -> Self {
         let mut broadcaster = Vec::new();
         let mut flip_flops = HashMap::new();
-        let mut conjunctions = HashMap::new();
+        let mut conjunctions = HashMap::from([(
+            "rx",
+            Conjunction {
+                recent: HashMap::new(),
+                modules: Vec::new(),
+            },
+        )]);
         for line in input.lines() {
             let (lhs, rhs) = line.split_once(" -> ").unwrap();
             if line.starts_with("%") {
@@ -51,15 +61,25 @@ impl<'a> Setup<'a> {
             }
         }
 
+        let last = conjunctions["rx"].recent.keys().next().unwrap();
+        let special = conjunctions[last]
+            .recent
+            .keys()
+            .flat_map(|c| conjunctions[c].recent.keys().map(|s| (*s, None)))
+            .collect();
+
         Setup {
             broadcaster,
             flip_flops,
             conjunctions,
+            special,
+            presses: 0,
         }
     }
 
     fn button(&mut self) -> (u64, u64, bool) {
-        let (mut low_pulses, mut high_pulses, mut rx_low, mut rx_high) = (1, 0, 0, 0);
+        self.presses += 1;
+        let (mut low_pulses, mut high_pulses) = (1, 0);
         let mut queue: VecDeque<_> = self.broadcaster.iter().map(Signal::broadcaster).collect();
         while let Some(signal) = queue.pop_front() {
             if signal.pulse.is_high() {
@@ -71,18 +91,25 @@ impl<'a> Setup<'a> {
                 flip_flop.handle(signal, &mut queue);
             } else if let Some(conjunction) = self.conjunctions.get_mut(signal.to) {
                 conjunction.handle(signal, &mut queue);
-            } else if signal.to == "rx" {
-                if signal.pulse.is_high() {
-                    rx_high += 1;
-                } else {
-                    rx_low += 1;
+            }
+
+            for (special, presses) in self.special.iter_mut() {
+                if presses.is_none()
+                    && self.conjunctions[special]
+                        .recent
+                        .values()
+                        .copied()
+                        .all(Pulse::is_high)
+                {
+                    *presses = Some(self.presses);
                 }
             }
         }
+
         (
             low_pulses,
             high_pulses,
-            dbg!(rx_low) == 1 && dbg!(rx_high) == 0,
+            self.special.values().all(Option::is_some),
         )
     }
 }
@@ -168,14 +195,18 @@ pub fn part1(input: &str) -> u64 {
     let (low_pulses, high_pulses) = repeat_with(|| setup.button())
         .take(1000)
         .fold((0, 0), |x, y| (x.0 + y.0, x.1 + y.1));
-    dbg!(low_pulses, high_pulses);
     low_pulses * high_pulses
 }
 
 pub fn part2(input: &str) -> u64 {
     let mut setup = Setup::parse(input);
-    let times = repeat_with(|| setup.button())
-        .take_while(|(_, _, done)| !done)
-        .count() as u64;
-    times + 1
+    let mut done = false;
+    while !done {
+        (_, _, done) = setup.button();
+    }
+    let mut total = 1;
+    for presses in setup.special.values().flatten() {
+        total = lcm(total, *presses);
+    }
+    total
 }

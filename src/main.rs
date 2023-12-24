@@ -20,6 +20,7 @@ mod day6;
 mod day7;
 mod day8;
 mod day9;
+mod shared;
 
 fn main() {
     let input = std::fs::read_to_string("input/day20.txt").unwrap();
