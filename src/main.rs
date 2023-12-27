@@ -14,6 +14,7 @@ mod day19;
 mod day2;
 mod day20;
 mod day21;
+mod day22;
 mod day3;
 mod day4;
 mod day5;
@@ -24,7 +25,7 @@ mod day9;
 mod shared;
 
 fn main() {
-    let input = std::fs::read_to_string("input/day21.txt").unwrap();
-    println!("{}", day21::part1(&input));
-    println!("{}", day21::part2(&input));
+    let input = std::fs::read_to_string("input/day22.txt").unwrap();
+    println!("{}", day22::part1(&input));
+    println!("{}", day22::part2(&input));
 }
