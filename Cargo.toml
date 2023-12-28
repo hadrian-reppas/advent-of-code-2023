@@ -7,4 +7,5 @@ edition = "2021"
 
 [dependencies]
 bimap = "0.6.3"
+nalgebra = "0.32.3"
 regex = "1.10.2"
