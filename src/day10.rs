@@ -1,5 +1,4 @@
 use std::collections::HashSet;
-use std::iter::repeat;
 
 #[derive(Clone, Copy, Debug)]
 enum Direction {
@@ -162,18 +161,6 @@ fn find_path(grid: &[Vec<char>]) -> Vec<(usize, usize, Direction, Direction)> {
     }
 
     path
-}
-
-fn make_zigzag(rows: usize, cols: usize) -> Vec<(usize, usize)> {
-    let mut cells = Vec::new();
-    for row in 0..rows {
-        if row % 2 == 0 {
-            cells.extend(repeat(row).zip(0..cols));
-        } else {
-            cells.extend(repeat(row).zip((0..cols).rev()));
-        }
-    }
-    cells
 }
 
 fn flood_fill(

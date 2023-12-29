@@ -32,13 +32,6 @@ enum Direction {
 }
 
 impl Direction {
-    const ALL: [Direction; 4] = [
-        Direction::Right,
-        Direction::Down,
-        Direction::Left,
-        Direction::Up,
-    ];
-
     fn parse(s: &str) -> Self {
         match s {
             "R" | "0" => Direction::Right,
