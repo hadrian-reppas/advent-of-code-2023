@@ -1,5 +1,7 @@
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 
+use rayon::prelude::*;
+
 #[derive(Clone, Copy, Debug)]
 struct Part {
     x: u64,
@@ -208,27 +210,33 @@ pub fn part2(input: &str) -> u64 {
     let a_values: Vec<_> = a_values.into_iter().chain(Some(4001)).collect();
     let s_values: Vec<_> = s_values.into_iter().chain(Some(4001)).collect();
 
-    let mut count = 0;
-    let mut x = 1;
+    let (mut x_windows, mut x) = (Vec::new(), 1);
     for &next_x in &x_values {
-        let mut m = 1;
-        for &next_m in &m_values {
-            let mut a = 1;
-            for &next_a in &a_values {
-                let mut s = 1;
-                for &next_s in &s_values {
-                    let part = Part { x, m, a, s };
-                    if accept_part(part, &workflows) {
-                        count += (next_x - x) * (next_m - m) * (next_a - a) * (next_s - s);
-                    }
-                    s = next_s;
-                }
-                a = next_a;
-            }
-            m = next_m;
-        }
+        x_windows.push((x, next_x));
         x = next_x;
     }
 
-    count
+    x_windows
+        .into_par_iter()
+        .map(|(x, next_x)| {
+            let mut count = 0;
+            let mut m = 1;
+            for &next_m in &m_values {
+                let mut a = 1;
+                for &next_a in &a_values {
+                    let mut s = 1;
+                    for &next_s in &s_values {
+                        let part = Part { x, m, a, s };
+                        if accept_part(part, &workflows) {
+                            count += (next_x - x) * (next_m - m) * (next_a - a) * (next_s - s);
+                        }
+                        s = next_s;
+                    }
+                    a = next_a;
+                }
+                m = next_m;
+            }
+            count
+        })
+        .sum()
 }
